@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#047857" />
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24" />
+      <stop offset="100%" stop-color="#d97706" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-opacity="0.25" />
+    </filter>
+  </defs>
+  <!-- Background squircle -->
+  <rect x="24" y="24" width="464" height="464" rx="100" fill="url(#bgGrad)" />
+  
+  <!-- Wallet Body -->
+  <g filter="url(#shadow)">
+    <rect x="96" y="140" width="320" height="232" rx="36" fill="#f8fafc" />
+    <!-- Wallet Stitch Line -->
+    <rect x="108" y="152" width="296" height="208" rx="26" fill="none" stroke="#cbd5e1" stroke-width="3" stroke-dasharray="8 6" />
+    
+    <!-- Gold Coin Emblem -->
+    <circle cx="210" cy="256" r="62" fill="url(#goldGrad)" stroke="#b45309" stroke-width="4" />
+    <text x="210" y="278" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="64" font-weight="900" fill="#ffffff" text-anchor="middle">₫</text>
+    
+    <!-- Wallet Flap -->
+    <path d="M 330 206 L 416 206 C 430 206 440 216 440 230 L 440 282 C 440 296 430 306 416 306 L 330 306 Z" fill="#0f172a" />
+    <!-- Clasp Button -->
+    <circle cx="410" cy="256" r="16" fill="url(#goldGrad)" stroke="#ffffff" stroke-width="3" />
+  </g>
+</svg>
