@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>SmartSpend Mini - Quản Lý Chi Tiêu Cá Nhân</title>
+  
+  <!-- PWA & Mobile Meta Tags -->
+  <meta name="theme-color" content="#10b981">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SmartSpend">
+  <meta name="description" content="Ứng dụng quản lý thu chi cá nhân tiện lợi, bảo mật chuẩn PWA Mobile-First">
+  
+  <!-- Icons & Manifest -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container"></div>
+
+  <!-- Main Mobile App Frame (Max Width 480px) -->
+  <div id="app-container">
+    
+    <!-- Top Header with Profile Card & Month Selector -->
+    <header class="app-header">
+      
+      <!-- User Profile Header Row -->
+      <div class="header-profile-row">
+        <button type="button" class="profile-touch-btn" id="header-profile-btn" title="Chỉnh sửa hồ sơ cá nhân">
+          <div class="avatar-wrapper" id="header-avatar">
+            <span class="avatar-emoji-span">🧑‍💼</span>
+          </div>
+          <div class="profile-text-wrap">
+            <div class="profile-greeting-line">
+              <span id="header-greeting">Xin chào,</span>
+              <span class="profile-name-strong" id="header-name">Bạn mới</span>
+              <span>👋</span>
+            </div>
+            <div class="profile-role-pill">
+              <span id="header-role">Quản lý tài chính</span>
+              <span>✏️</span>
+            </div>
+          </div>
+        </button>
+
+        <button class="header-action-btn" id="btn-quick-today" title="Về tháng hiện tại" onclick="window.app.setMonthFromPicker(new Date().toISOString().slice(0,7))">
+          ↺
+        </button>
+      </div>
+
+      <!-- Month Selector Bar -->
+      <div class="month-navigator">
+        <button class="nav-arrow-btn" id="btn-prev-month" title="Tháng trước">◀</button>
+        <button class="month-display-btn" id="btn-month-display" title="Chọn tháng">
+          📅 Tháng 11/2026
+        </button>
+        <button class="nav-arrow-btn" id="btn-next-month" title="Tháng sau">▶</button>
+      </div>
+      <input type="month" id="hidden-month-input">
+    </header>
+
+    <!-- Main Content Area with 4 Tab Panes -->
+    <main class="main-content">
+
+      <!-- ================================================================== -->
+      <!-- TAB 1: TỔNG QUAN (OVERVIEW) -->
+      <!-- ================================================================== -->
+      <section id="tab-overview" class="tab-pane active">
+        
+        <!-- PWA Install Banner (dynamic) -->
+        <div id="pwa-install-banner" class="pwa-banner" style="display: none;">
+          <div class="pwa-banner-text">
+            📱 Cài đặt SmartSpend ra màn hình chính để dùng như App thật!
+          </div>
+          <button id="btn-banner-install" class="pwa-btn-install">Cài đặt</button>
+        </div>
+
+        <!-- Monthly Balance Card -->
+        <div class="balance-card-modern">
+          <div class="balance-card-top">
+            <div class="balance-title">Số Dư Tháng Này</div>
+            <div class="balance-status-badge">Thu nhập ròng</div>
+          </div>
+          <div id="overview-balance" class="balance-amount neutral">0 ₫</div>
+        </div>
+
+        <!-- Income & Expense Stat Cards (Two columns) -->
+        <div class="stat-grid">
+          <div class="stat-card-modern income-card">
+            <div class="stat-header">
+              <span class="stat-badge-circle">↑</span>
+              <span>Tổng Thu</span>
+            </div>
+            <div id="overview-income" class="stat-value income">0 ₫</div>
+          </div>
+          <div class="stat-card-modern expense-card">
+            <div class="stat-header">
+              <span class="stat-badge-circle">↓</span>
+              <span>Tổng Chi</span>
+            </div>
+            <div id="overview-expense" class="stat-value expense">0 ₫</div>
+          </div>
+        </div>
+
+        <!-- Wallets Section -->
+        <div class="section-title">
+          <span>Ví & Tài khoản</span>
+        </div>
+        <div id="overview-wallets" class="wallets-scroll">
+          <!-- Rendered via JS -->
+        </div>
+
+        <!-- Category Breakdown -->
+        <div class="section-title">
+          <span>Chi tiêu theo danh mục</span>
+        </div>
+        <div id="overview-category-breakdown" class="cat-breakdown">
+          <!-- Rendered via JS -->
+        </div>
+
+        <!-- Recent Transactions -->
+        <div class="section-title">
+          <span>Giao dịch trong tháng</span>
+          <span class="section-link" onclick="window.app.switchTab('transactions')">Xem tất cả →</span>
+        </div>
+        <div id="overview-recent-tx">
+          <!-- Rendered via JS -->
+        </div>
+      </section>
+
+      <!-- ================================================================== -->
+      <!-- TAB 2: SỔ GIAO DỊCH (TRANSACTIONS) -->
+      <!-- ================================================================== -->
+      <section id="tab-transactions" class="tab-pane">
+        
+        <!-- Filter and Search Bar -->
+        <div class="filter-bar">
+          <div class="search-input-wrap">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="tx-search-input" class="search-input" placeholder="Tìm theo ghi chú, danh mục, số tiền...">
+          </div>
+
+          <div class="filter-row">
+            <select id="tx-filter-cat" class="filter-select">
+              <option value="ALL">Tất cả danh mục</option>
+            </select>
+          </div>
+
+          <div class="type-segmented">
+            <button class="type-seg-btn active" data-type="ALL">Tất cả</button>
+            <button class="type-seg-btn" data-type="EXPENSE">Khoản Chi</button>
+            <button class="type-seg-btn" data-type="INCOME">Khoản Thu</button>
+          </div>
+        </div>
+
+        <!-- Grouped Transactions List -->
+        <div id="transactions-grouped-list">
+          <!-- Rendered dynamically -->
+        </div>
+      </section>
+
+      <!-- ================================================================== -->
+      <!-- TAB 3: QUẢN LÝ DANH MỤC (CATEGORIES) -->
+      <!-- ================================================================== -->
+      <section id="tab-categories" class="tab-pane">
+        
+        <div class="cat-mgmt-header">
+          <div class="type-segmented" style="flex: 1; max-width: 220px;">
+            <button id="btn-cat-mgmt-expense" class="type-seg-btn active">Chi tiêu</button>
+            <button id="btn-cat-mgmt-income" class="type-seg-btn">Thu nhập</button>
+          </div>
+          <button id="btn-open-add-cat" class="btn-add-cat">+ Thêm mới</button>
+        </div>
+
+        <div id="categories-list" class="cat-list-wrap">
+          <!-- Rendered dynamically -->
+        </div>
+      </section>
+
+      <!-- ================================================================== -->
+      <!-- TAB 4: CÀI ĐẶT & HỒ SƠ (SETTINGS) -->
+      <!-- ================================================================== -->
+      <section id="tab-settings" class="tab-pane">
+        
+        <!-- Profile Section in Settings -->
+        <div class="settings-section">
+          <div class="settings-title">👤 Hồ sơ cá nhân (Lưu nội bộ)</div>
+          <div class="settings-profile-banner">
+            <div class="settings-profile-left">
+              <div class="avatar-wrapper" id="settings-profile-avatar" style="width: 44px; height: 44px;">
+                <span class="avatar-emoji-span">🧑‍💼</span>
+              </div>
+              <div>
+                <div class="settings-profile-name" id="settings-profile-name">Bạn mới</div>
+                <div class="settings-profile-role" id="settings-profile-role">Quản lý tài chính</div>
+              </div>
+            </div>
+            <button type="button" class="btn-action-full secondary" id="btn-edit-profile-settings" style="width: auto; height: 38px; padding: 0 14px; margin-bottom: 0;">
+              ✏️ Sửa
+            </button>
+          </div>
+          <div class="info-note">
+            Thông tin hồ sơ lưu hoàn toàn trên trình duyệt của máy bạn, không qua máy chủ, đảm bảo riêng tư 100%.
+          </div>
+        </div>
+
+        <!-- Data Management & CSV -->
+        <div class="settings-section">
+          <div class="settings-title">📁 Sao lưu & Xuất / Nhập CSV</div>
+          
+          <button id="btn-export-csv" class="btn-action-full primary">
+            <span>📥</span> Xuất File CSV (Chuẩn UTF-8 BOM)
+          </button>
+          <div class="info-note">
+            Tự động chèn ký tự BOM (\uFEFF) giúp mở bằng Microsoft Excel trên điện thoại hoặc máy tính không bao giờ bị lỗi font tiếng Việt.
+          </div>
+
+          <div style="height: 12px;"></div>
+
+          <button id="btn-import-csv" class="btn-action-full secondary">
+            <span>📤</span> Nhập Dữ liệu từ File CSV
+          </button>
+          <input type="file" id="csv-file-input" accept=".csv,text/csv" style="display: none;">
+          <div class="info-note">
+            Cho phép chọn file .csv từ máy để phục hồi hoặc gộp thêm giao dịch vào sổ chi tiêu.
+          </div>
+        </div>
+
+        <!-- Test Data & Reset -->
+        <div class="settings-section">
+          <div class="settings-title">⚡ Dữ liệu mẫu & Đặt lại</div>
+          
+          <button id="btn-load-sample-settings" class="btn-action-full sample">
+            <span>⚡</span> Nạp dữ liệu mẫu để thử nghiệm
+          </button>
+          <div class="info-note">
+            Nạp nhanh 9 giao dịch thực tế vào tháng hiện tại để xem trước biểu đồ và thống kê.
+          </div>
+
+          <div style="height: 12px;"></div>
+
+          <button id="btn-reset-data" class="btn-action-full danger">
+            <span>🔄</span> Đặt lại về 0 ₫ (Xóa sạch giao dịch)
+          </button>
+          <div class="info-note">
+            Xóa trắng toàn bộ giao dịch về 0 ₫. Vẫn giữ nguyên các danh mục mặc định và hồ sơ của bạn.
+          </div>
+        </div>
+
+        <!-- PWA Installation -->
+        <div class="settings-section">
+          <div class="settings-title">📲 Cài đặt vào Màn hình chính</div>
+          <button id="btn-pwa-install" class="btn-action-full secondary">
+            <span>➕</span> Thêm vào Màn hình chính (PWA)
+          </button>
+          <div class="info-note">
+            <b>• Trên iPhone (Safari):</b> Bấm nút <b>Chia sẻ (Share)</b> ở đáy trình duyệt ➔ Chọn <b>"Thêm vào MH chính" (Add to Home Screen)</b>.<br>
+            <b>• Trên Android (Chrome):</b> Bấm menu <b>3 chấm</b> góc phải ➔ Chọn <b>"Thêm vào Màn hình chính"</b>.
+          </div>
+        </div>
+
+        <!-- About App -->
+        <div class="settings-section" style="text-align: center;">
+          <div style="font-size: 1.15rem; font-weight: 800; color: var(--income-dark); margin-bottom: 4px;">SmartSpend Mini</div>
+          <div style="font-size: 0.8rem; color: var(--text-muted);">Phiên bản 1.1.0 (Mobile-First PWA)</div>
+          <div style="font-size: 0.78rem; color: var(--text-light); margin-top: 6px;">Dữ liệu lưu trữ độc lập & an toàn 100% trên thiết bị của bạn qua LocalStorage.</div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Bottom Navigation Bar (Fixed 44px+ touch targets) -->
+    <nav class="bottom-nav">
+      <button class="nav-item active" id="nav-overview" data-tab="overview">
+        <span class="nav-item-icon">📊</span>
+        <span>Tổng quan</span>
+      </button>
+
+      <button class="nav-item" id="nav-transactions" data-tab="transactions">
+        <span class="nav-item-icon">📜</span>
+        <span>Giao dịch</span>
+      </button>
+
+      <!-- Central Floating Add Button -->
+      <button class="btn-floating-add" id="btn-fab-add" title="Thêm giao dịch mới">
+        +
+      </button>
+
+      <button class="nav-item" id="nav-categories" data-tab="categories">
+        <span class="nav-item-icon">🏷️</span>
+        <span>Danh mục</span>
+      </button>
+
+      <button class="nav-item" id="nav-settings" data-tab="settings">
+        <span class="nav-item-icon">⚙️</span>
+        <span>Cài đặt</span>
+      </button>
+    </nav>
+
+  </div>
+
+  <!-- ====================================================================== -->
+  <!-- MODAL: HỒ SƠ CÁ NHÂN (PROFILE MODAL) -->
+  <!-- ====================================================================== -->
+  <div id="modal-profile" class="modal-backdrop">
+    <div class="modal-sheet">
+      <div class="modal-handle-bar"></div>
+      
+      <div class="modal-header">
+        <div class="modal-title">Hồ Sơ Cá Nhân</div>
+        <button class="btn-close-modal" data-close-modal="modal-profile">✕</button>
+      </div>
+
+      <form id="form-profile">
+        <div class="modal-body">
+          
+          <!-- Avatar Preview & Selector -->
+          <div class="profile-avatar-selector-box">
+            <div class="avatar-preview-circle" id="profile-avatar-preview">
+              <span class="avatar-preview-emoji">🧑‍💼</span>
+            </div>
+
+            <!-- Upload Photo Action -->
+            <label class="btn-file-upload-label" for="profile-avatar-file">
+              <span>📷</span> Chọn ảnh từ máy
+            </label>
+            <input type="file" id="profile-avatar-file" accept="image/*" style="display: none;">
+
+            <!-- Quick Emoji Avatars Grid -->
+            <div style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); margin-top: 4px;">
+              Hoặc chọn avatar nhanh:
+            </div>
+            <div class="quick-avatar-grid" id="quick-avatar-grid">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <!-- Name Input -->
+          <div class="form-group">
+            <label class="form-label">
+              <span>Họ và Tên</span>
+              <span class="form-label-sub">Bắt buộc</span>
+            </label>
+            <input type="text" id="profile-name-input" class="form-input" placeholder="Ví dụ: Nguyễn Văn A" required>
+          </div>
+
+          <!-- Role / Occupation Input -->
+          <div class="form-group">
+            <label class="form-label">
+              <span>Vai trò / Công việc</span>
+              <span class="form-label-sub">Tùy chọn</span>
+            </label>
+            <input type="text" id="profile-role-input" class="form-input" placeholder="Ví dụ: Kỹ sư, Freelancer, Sinh viên...">
+          </div>
+
+        </div>
+
+        <div class="modal-footer">
+          <button type="submit" class="btn-submit-modal">Lưu Hồ Sơ</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ====================================================================== -->
+  <!-- MODAL: THÊM / SỬA GIAO DỊCH (BOTTOM SHEET) -->
+  <!-- ====================================================================== -->
+  <div id="modal-transaction" class="modal-backdrop">
+    <div class="modal-sheet">
+      <div class="modal-handle-bar"></div>
+      
+      <div class="modal-header">
+        <div id="modal-tx-title" class="modal-title">Thêm Giao Dịch Mới</div>
+        <button class="btn-close-modal" data-close-modal="modal-transaction">✕</button>
+      </div>
+
+      <form id="form-transaction">
+        <div class="modal-body">
+          
+          <!-- Income / Expense Switcher -->
+          <div class="form-type-switcher">
+            <button type="button" id="btn-form-type-expense" class="type-btn active expense">
+              <span>↓</span> Khoản Chi
+            </button>
+            <button type="button" id="btn-form-type-income" class="type-btn">
+              <span>↑</span> Khoản Thu
+            </button>
+          </div>
+
+          <!-- Amount Input with live thousand separator -->
+          <div class="form-group">
+            <label class="form-label">
+              <span>Số tiền</span>
+              <span class="form-label-sub">Nguyên số VNĐ</span>
+            </label>
+            <div class="amount-input-box">
+              <input type="text" inputmode="numeric" id="tx-amount-input" class="input-amount" placeholder="0" autocomplete="off" required>
+              <span class="amount-unit">₫</span>
+            </div>
+            <div id="tx-amount-error" class="error-msg">Vui lòng nhập số tiền hợp lệ (> 0 VNĐ)!</div>
+
+            <!-- Quick Add Chips -->
+            <div class="quick-amount-chips">
+              <button type="button" class="quick-chip" onclick="window.app.addQuickAmount(10000)">+10k</button>
+              <button type="button" class="quick-chip" onclick="window.app.addQuickAmount(50000)">+50k</button>
+              <button type="button" class="quick-chip" onclick="window.app.addQuickAmount(100000)">+100k</button>
+              <button type="button" class="quick-chip" onclick="window.app.addQuickAmount(500000)">+500k</button>
+              <button type="button" class="quick-chip" onclick="window.app.addQuickAmount(1000000)">+1Tr</button>
+            </div>
+          </div>
+
+          <!-- Category Grid Picker -->
+          <div class="form-group">
+            <label class="form-label">Chọn danh mục</label>
+            <div id="tx-category-grid" class="category-picker-grid">
+              <!-- Dynamically rendered -->
+            </div>
+          </div>
+
+          <!-- Date Picker -->
+          <div class="form-group">
+            <label class="form-label">Ngày giao dịch</label>
+            <input type="date" id="tx-date-input" class="form-input" required>
+          </div>
+
+          <!-- Wallet / Account Picker -->
+          <div class="form-group">
+            <label class="form-label">Ví / Tài khoản</label>
+            <select id="tx-wallet-select" class="form-select">
+              <!-- Rendered via JS -->
+            </select>
+          </div>
+
+          <!-- Note Input -->
+          <div class="form-group">
+            <label class="form-label">Ghi chú (Tùy chọn)</label>
+            <textarea id="tx-note-input" class="form-textarea" placeholder="Nhập ghi chú chi tiết..."></textarea>
+          </div>
+
+        </div>
+
+        <div class="modal-footer">
+          <button type="submit" class="btn-submit-modal">Lưu Giao Dịch</button>
+          <button type="button" id="btn-tx-delete" class="btn-delete-modal" style="display: none;">
+            🗑️ Xóa giao dịch này
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ====================================================================== -->
+  <!-- MODAL: THÊM / SỬA DANH MỤC -->
+  <!-- ====================================================================== -->
+  <div id="modal-category" class="modal-backdrop">
+    <div class="modal-sheet">
+      <div class="modal-handle-bar"></div>
+
+      <div class="modal-header">
+        <div id="modal-cat-title" class="modal-title">Thêm Danh Mục</div>
+        <button class="btn-close-modal" data-close-modal="modal-category">✕</button>
+      </div>
+
+      <form id="form-category">
+        <div class="modal-body">
+          
+          <!-- Category Type Switcher -->
+          <div class="form-type-switcher">
+            <button type="button" id="btn-cat-type-expense" class="type-btn active expense">
+              Khoản Chi
+            </button>
+            <button type="button" id="btn-cat-type-income" class="type-btn">
+              Khoản Thu
+            </button>
+          </div>
+
+          <!-- Category Name -->
+          <div class="form-group">
+            <label class="form-label">Tên danh mục</label>
+            <input type="text" id="cat-name-input" class="form-input" placeholder="Ví dụ: Cà phê, Quần áo..." required>
+          </div>
+
+          <!-- Emoji Picker -->
+          <div class="form-group">
+            <label class="form-label">Biểu tượng (Icon)</label>
+            <div id="cat-emoji-picker" class="emoji-grid-picker">
+              <!-- Emojis rendered via JS -->
+            </div>
+          </div>
+
+          <!-- Color Picker -->
+          <div class="form-group">
+            <label class="form-label">Màu sắc nhận diện</label>
+            <div id="cat-color-picker" class="color-grid-picker">
+              <!-- Colors rendered via JS -->
+            </div>
+          </div>
+
+        </div>
+
+        <div class="modal-footer">
+          <button type="submit" class="btn-submit-modal">Lưu Danh Mục</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ====================================================================== -->
+  <!-- MODAL: HỘP THOẠI XÁC NHẬN (CONFIRMATION DIALOG) -->
+  <!-- ====================================================================== -->
+  <div id="modal-confirm" class="modal-backdrop alert-mode">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <div id="confirm-title" class="modal-title">Xác nhận</div>
+        <button class="btn-close-modal" data-close-modal="modal-confirm">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="confirm-message" style="font-size: 0.95rem; line-height: 1.5; color: var(--text-main); white-space: pre-line;"></div>
+      </div>
+      <div class="modal-footer">
+        <button id="btn-confirm-yes" class="btn-submit-modal">Xác nhận</button>
+        <button id="btn-confirm-alt" class="btn-action-full secondary" style="display: none;"></button>
+        <button id="btn-confirm-cancel" class="btn-action-full secondary">Hủy bỏ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/storage.js"></script>
+  <script src="js/csv.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
